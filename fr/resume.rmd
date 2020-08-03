@@ -1,0 +1,243 @@
+---
+title: boukary_resume
+author: Boukary Ouedraogo
+date: "`r Sys.Date()`"
+output:
+  pagedown::html_resume:
+    css: ['css/resume.css', 'css/styles_html.css', 'resume']
+    # css: ['css/custom_resume.css', 'css/styles_pdf.css', 'resume']
+    # set it to true for a self-contained HTML  page but it'll take longer to render
+    self_contained: true
+params:
+  doctype: "HTML" # "PDF" or "HTML" is automatically updated in update_resume.R 
+  pdf_mode:
+    value: true
+
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(
+  results='asis', 
+  echo = FALSE
+)
+library(tidyverse)
+library(datadrivencv)
+library(glue)
+library(googlesheets4)
+library(googledrive)
+
+# ======================================================================
+# These variables determine how the the data is loaded and how the exports are
+# done.
+
+# Is data stored in google sheets? If no data will be gather from the csvs/
+# folder in project
+using_googlesheets <- TRUE
+
+# Just the copied URL from the sheet
+positions_sheet_loc <- "https://docs.google.com/spreadsheets/d/1nWVIoaKMEIAGD20TZtdtyZUJYn1xpbITwcysS5c0c78/edit#gid=1701420658"
+
+# Is this sheet available for anyone to read? If you're using a private sheet
+# set this to false and go to gather_data.R and run the data loading manually
+# once to cache authentication
+sheet_is_publicly_readable <- TRUE
+
+# Is the goal of this knit to build a document that is exported to PDF? If so
+# set this to true to have links turned into footnotes at the end of the
+# document
+PDF_EXPORT <- TRUE
+
+
+# A global (gasp) variable that holds all the links that were inserted for
+# placement at the end
+links <- c()
+
+# ======================================================================
+# Now we source two external scripts. One contains functions for building the
+# text output and the other loads up our data from either googlesheets or csvs
+
+# Functions for building sections from CSV data
+source('functions/parsing_functions.r') 
+source('functions/helper_functions.r') 
+
+# Load data for CV/Resume
+    source('functions/gather_data.r')
+
+# Now we just need to filter down the position data to include less verbose
+# categories and only the entries we have designated for the resume
+position_data <- position_data %>% 
+  filter(in_resume) %>% 
+  mutate(
+    # Build some custom sections by collapsing others
+    section = case_when(
+      section %in% c('research_positions', 'industry_positions') ~ 'positions', 
+      section %in% c('data_science_writings', 'by_me_press') ~ 'writings',
+      TRUE ~ section
+    )
+  ) 
+```
+
+
+```{r}
+# When in pdf export mode the little dots are unaligned, so fix that with some conditional CSS.
+if(params$pdf_mode) {
+    cat("
+<style>
+:root{
+  --decorator-outer-offset-left: -6.5px;
+}
+</style>")
+}
+```
+
+
+Aside
+================================================================================
+
+
+Contact {#contact}
+--------------------------------------------------------------------------------
+
+```{r contactinfo}
+
+# Adjust contact info based on document type - html has link while pdf does not
+if(params$doctype == "HTML") {
+  glue::glue('
+    - <i class="fa fa-map-marked-alt"></i> Courbevoie, France
+    - <i class="fa fa-phone"></i> <a href="tel:+33660786682">(+33) 6 60 78 66 82</a>
+    - <i class="fa fa-envelope"></i> bo.ouedraogo7@gmail.com
+    - <i class="fa fa-globe" aria-hidden="true"></i> [oboukary.github.io](https://oboukary.github.io/)
+    - <i class="fa fa-globe" aria-hidden="true"></i> [boukary.rbind.io](https://boukary.rbind.io/fr/)
+    - <i class="fa fa-github"></i> [github.com/oboukary](https://github.com/oboukary)
+    - <i class="fab fa-linkedin-in"></i> [linkedin.com/oboukary](https://www.linkedin.com/in/oboukary/)
+  ')
+} 
+
+if(params$doctype == "PDF") {
+  glue::glue('
+    - <i class="fa fa-map-marked-alt"></i> Courbevoie, France
+    - <i class="fa fa-envelope"></i> bo.ouedraogo7<!-- breaking hyplerlink -->@gmail.com
+    - <i class="fa fa-globe" aria-hidden="true"></i> oboukary.github.io
+    - <i class="fa fa-globe" aria-hidden="true"></i> boukary.rbind.io
+    - <i class="fa fa-github"></i> github.com/oboukary
+    - <i class="fab fa-linkedin-in"></i> linkedin.com/oboukary
+    - <i class="fa fa-phone"></i> (+33) 6 60 78 66 82
+  ')
+}
+
+```
+
+<i class="fas fa-download"></i> Download [this resume in PDF](https://oboukary.github.io/resume/resume.pdf) or the
+[complete version](https://oboukary.github.io/resume/index.pdf).
+
+
+
+
+```{r download}
+# if doctype is html add link to download a pdf version
+
+  #cat("[<i class='fas fa-download'></i> Download as a PDF](https://github.com/oboukary/resume/raw/master/boukary_resume.pdf)")
+
+
+```
+
+<br>
+
+
+Coding skills {#skills}
+--------------------------------------------------------------------------------
+
+```{r codingskills, dev.args = list(bg = 'transparent')}
+
+# function from helper_functions.R
+build_skill_bars(skills,"Coding")
+
+```
+
+Software {#software}
+--------------------------------------------------------------------------------
+
+```{r software, dev.args = list(bg = 'transparent')}
+
+# function from helper_functions.R
+build_skill_bars(skills, "Software")
+
+```
+
+Interests {#Business}
+--------------------------------------------------------------------------------
+
+```{r businessSkills, dev.args = list(bg = 'transparent')}
+
+# function from helper_functions.R
+build_skill_bars(skills, "Fields of interest")
+
+```
+
+
+
+
+
+
+
+
+Disclaimer {#disclaimer}
+--------------------------------------------------------------------------------
+
+
+```{r}
+
+# set disclaimer in bottom right corner based on doctype
+if(params$doctype == "HTML") {
+  glue::glue("
+    Made w/ [**pagedown**](https://github.com/rstudio/pagedown).   
+    Source code: [**Github repo**](https://github.com/oboukary/resume).
+  ")
+} 
+if(params$doctype == "PDF") {
+  glue::glue("
+    Made w/ **pagedown::html_resume**
+    Code: **github.com/oboukary/resume** 
+  ")
+}
+```
+
+
+Last updated on `r Sys.Date()`.
+<br>
+<br>
+
+
+Main
+================================================================================
+
+
+Boukary Ouedraogo {#title}
+--------------------------------------------------------------------------------
+
+### Data Scientist  |  Statistician  |  Economist
+
+Passionate about international development, issues related to poverty, inequality and sustainable development, I am a data enthusiast who enjoys combining big data, artificial intelligence and emerging technologies to solve business problems. With backgrounds in statistics, economics and finance, I am a person with a strong scientific curiosity. 
+I am interested in topics related to development of Africa and Burkina Faso in particular, but I am also opened to global challenges.
+
+Education {data-icon=graduation-cap data-concise=true}
+--------------------------------------------------------------------------------
+
+```{r education}
+print_section(position_data, 'education')
+```
+
+
+
+Professional Experience {data-icon=suitcase}
+--------------------------------------------------------------------------------
+
+```{r jobs}
+print_section(position_data, 'positions')
+```
+
+
+
+
+
+
